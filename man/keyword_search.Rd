@@ -5,8 +5,8 @@
 \title{Search a pdf file for keywords}
 \usage{
 keyword_search(x, keyword, path = FALSE, split_pdf = FALSE,
-  surround_lines = FALSE, ignore_case = FALSE, heading_search = FALSE,
-  heading_args = NULL)
+  surround_lines = FALSE, ignore_case = FALSE, remove_hyphen = TRUE,
+  token_results = TRUE, heading_search = FALSE, heading_args = NULL, ...)
 }
 \arguments{
 \item{x}{Either the text of the pdf read in with the pdftools package or a 
@@ -34,12 +34,27 @@ case of the keyword matters. Default is FALSE meaning that case of the
 keyword is literal. If a vector, must be same length as the keyword 
 vector.}
 
+\item{remove_hyphen}{TRUE/FALSE indicating whether hyphenated words should
+be adjusted to combine onto a single line. Default is TRUE.}
+
+\item{token_results}{TRUE/FALSE indicating whether the results text returned
+should be split into tokens. See the tokenizers package and 
+\code{\link{convert_tokens}} for more details. Defaults to TRUE.}
+
 \item{heading_search}{TRUE/FALSE indicating whether to search for headings 
 in the pdf.}
 
 \item{heading_args}{A list of arguments to pass on to the 
 \code{\link{heading_search}} function. See \code{\link{heading_search}} 
  for more details on arguments needed.}
+
+\item{...}{token_function to pass to \code{\link{convert_tokens}} 
+function.}
+}
+\value{
+A tibble data frame that contains the keyword, location of match, 
+  the line of text match, and optionally the tokens associated with the line
+  of text match.
 }
 \description{
 This uses the pdf_text from the pdftools package to perform keyword searches. 
@@ -58,7 +73,6 @@ keyword_search(file, keyword = c('variance', 'mixed effects'),
   
 # split pdf
 keyword_search(file, keyword = c('repeated measures', 'mixed effects'),
-  path = TRUE, split_pdf = TRUE)
+  path = TRUE, split_pdf = TRUE, remove_hyphen = FALSE)
 
 }
-

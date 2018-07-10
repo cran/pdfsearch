@@ -5,8 +5,9 @@
 \title{Wrapper for keyword search function}
 \usage{
 keyword_directory(directory, keyword, split_pdf = FALSE,
-  surround_lines = FALSE, ignore_case = FALSE, full_names = FALSE,
-  recursive = FALSE, max_search = NULL)
+  surround_lines = FALSE, ignore_case = FALSE, remove_hyphen = TRUE,
+  token_results = TRUE, full_names = TRUE, recursive = FALSE,
+  max_search = NULL, ...)
 }
 \arguments{
 \item{directory}{The directory to perform the search for pdf files to search.}
@@ -30,8 +31,15 @@ case of the keyword matters.
 Default is FALSE meaning that case of the keyword is literal. If a vector, 
 must be same length as the keyword vector.}
 
+\item{remove_hyphen}{TRUE/FALSE indicating whether hyphenated words should
+be adjusted to combine onto a single line. Default is TRUE.}
+
+\item{token_results}{TRUE/FALSE indicating whether the results text returned
+should be split into tokens. See the tokenizers package and 
+\code{\link{convert_tokens}} for more details. Defaults to TRUE.}
+
 \item{full_names}{TRUE/FALSE indicating if the full file path should be used.
-Default is FALSE, see \code{\link{list.files}} for more details.}
+Default is TRUE, see \code{\link{list.files}} for more details.}
 
 \item{recursive}{TRUE/FALSE indicating if subdirectories should be searched 
 as well.
@@ -39,6 +47,14 @@ Default is FALSE, see \code{\link{list.files}} for more details.}
 
 \item{max_search}{An optional numeric vector indicating the maximum number
 of pdfs to search. Will only search the first n cases.}
+
+\item{...}{token_function to pass to \code{\link{convert_tokens}} 
+function.}
+}
+\value{
+A tibble data frame that contains the keyword, location of match, 
+  the line of text match, and optionally the tokens associated with the line
+  of text match. The output is combined (row binded) for all pdf input files.
 }
 \description{
 This will use the keyword_search function to loop over all pdf files in a 
@@ -56,9 +72,8 @@ keyword_directory(directory,
 # can also split pdfs
 keyword_directory(directory, 
        keyword = c('repeated measures', 'measurement error'),
-       split_pdf = TRUE,
+       split_pdf = TRUE, remove_hyphen = FALSE,
        surround_lines = 1, full_names = TRUE)
 
 
 }
-

@@ -19,13 +19,25 @@
 #'    case of the keyword matters. 
 #'    Default is FALSE meaning that case of the keyword is literal. If a vector, 
 #'    must be same length as the keyword vector.
+#' @param remove_hyphen TRUE/FALSE indicating whether hyphenated words should
+#'    be adjusted to combine onto a single line. Default is TRUE.
+#' @param token_results TRUE/FALSE indicating whether the results text returned
+#'    should be split into tokens. See the tokenizers package and 
+#'    \code{\link{convert_tokens}} for more details. Defaults to TRUE.
 #' @param full_names TRUE/FALSE indicating if the full file path should be used.
-#'    Default is FALSE, see \code{\link{list.files}} for more details.
+#'    Default is TRUE, see \code{\link{list.files}} for more details.
 #' @param recursive TRUE/FALSE indicating if subdirectories should be searched 
 #'    as well.
 #'    Default is FALSE, see \code{\link{list.files}} for more details.
 #' @param max_search An optional numeric vector indicating the maximum number
 #'    of pdfs to search. Will only search the first n cases.
+#' @param ... token_function to pass to \code{\link{convert_tokens}} 
+#'   function. 
+#'   
+#' @return A tibble data frame that contains the keyword, location of match, 
+#'   the line of text match, and optionally the tokens associated with the line
+#'   of text match. The output is combined (row binded) for all pdf input files.
+#'    
 #' @examples 
 #' # find directory
 #' directory <- system.file('pdf', package = 'pdfsearch')
@@ -38,15 +50,16 @@
 #' # can also split pdfs
 #' keyword_directory(directory, 
 #'        keyword = c('repeated measures', 'measurement error'),
-#'        split_pdf = TRUE,
+#'        split_pdf = TRUE, remove_hyphen = FALSE,
 #'        surround_lines = 1, full_names = TRUE)
 #' 
 #' 
 #' @export
 keyword_directory <- function(directory, keyword, split_pdf = FALSE, 
                               surround_lines = FALSE,
-                              ignore_case = FALSE, full_names = FALSE, 
-                              recursive = FALSE, max_search = NULL) {
+                              ignore_case = FALSE, remove_hyphen = TRUE,
+                              token_results = TRUE, full_names = TRUE, 
+                              recursive = FALSE, max_search = NULL, ...) {
   files_dir <- list.files(path = directory, pattern = ".pdf", 
                           full.names = full_names, recursive = recursive)
   file_name <- list.files(path = directory, pattern = ".pdf", 
@@ -56,14 +69,16 @@ keyword_directory <- function(directory, keyword, split_pdf = FALSE,
     extract_table <- lapply(seq_along(files_dir), function(xx) 
       keyword_search(files_dir[xx], keyword = keyword, path = TRUE,
                      split_pdf = split_pdf, surround_lines = surround_lines, 
-                     ignore_case = ignore_case))
+                     ignore_case = ignore_case, remove_hyphen = remove_hyphen,
+                     token_results = token_results, ...))
   } else {
     files_dir <- files_dir[1:max_search]
     file_name <- file_name[1:max_search]
     extract_table <- lapply(seq_along(files_dir), function(xx) 
       keyword_search(files_dir[xx], keyword = keyword, path = TRUE,
                      split_pdf = split_pdf, surround_lines = surround_lines, 
-                     ignore_case = ignore_case))
+                     ignore_case = ignore_case, remove_hyphen = remove_hyphen,
+                     token_results = token_results, ...))
   }
   
   num_rows <- unlist(lapply(extract_table, nrow))

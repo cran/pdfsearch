@@ -23,13 +23,26 @@
 #'    case of the keyword matters. Default is FALSE meaning that case of the 
 #'    keyword is literal. If a vector, must be same length as the keyword 
 #'    vector.
+#' @param remove_hyphen TRUE/FALSE indicating whether hyphenated words should
+#'    be adjusted to combine onto a single line. Default is TRUE.
+#' @param token_results TRUE/FALSE indicating whether the results text returned
+#'    should be split into tokens. See the tokenizers package and 
+#'    \code{\link{convert_tokens}} for more details. Defaults to TRUE.
 #' @param heading_search TRUE/FALSE indicating whether to search for headings 
 #'    in the pdf.
 #' @param heading_args A list of arguments to pass on to the 
 #'    \code{\link{heading_search}} function. See \code{\link{heading_search}} 
 #'     for more details on arguments needed.
+#' @param ... token_function to pass to \code{\link{convert_tokens}} 
+#'   function. 
+#'   
+#' @return A tibble data frame that contains the keyword, location of match, 
+#'   the line of text match, and optionally the tokens associated with the line
+#'   of text match. 
+#'   
 #' @importFrom pdftools pdf_text
 #' @importFrom tibble tibble
+#' @importFrom tokenizers tokenize_lines
 #' @examples 
 #' file <- system.file('pdf', '1501.00450.pdf', package = 'pdfsearch')
 #' 
@@ -42,16 +55,18 @@
 #'   
 #' # split pdf
 #' keyword_search(file, keyword = c('repeated measures', 'mixed effects'),
-#'   path = TRUE, split_pdf = TRUE)
+#'   path = TRUE, split_pdf = TRUE, remove_hyphen = FALSE)
 #' 
 #' @export
 keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
                            surround_lines = FALSE, ignore_case = FALSE,
-                           heading_search = FALSE, heading_args = NULL) {
+                           remove_hyphen = TRUE, token_results = TRUE,
+                           heading_search = FALSE, heading_args = NULL,
+                           ...) {
   if(path) {
     x <- pdftools::pdf_text(x)
   }
-  line_nums <- cumsum(sapply(strsplit(x, split = '\r\n'), length))
+  line_nums <- cumsum(lapply(tokenizers::tokenize_lines(x), length))
   if(any(line_nums == 0)) {
     warning('text not recognized in pdf')
     text_out <- data.frame(keyword = NULL, 
@@ -65,8 +80,12 @@ keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
       line_nums <- cumsum(x_list[[2]])
       x_lines <- x_list[[1]]
     } else {
-      x_lines <- unlist(strsplit(x, split = '\r\n'))
+      x_lines <- unlist(tokenizers::tokenize_lines(x))
       x_lines <- gsub("^\\s+|\\s+$", '', x_lines)
+    }
+    
+    if(remove_hyphen) {
+      x_lines <- remove_hyphen(x_lines)
     }
     
     
@@ -97,13 +116,21 @@ keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
         x_lines[keyword_line[xx]])
     }
     
+    if(token_results) {
+      token_results_text <- convert_tokens_keyword(lines_sel, ...)
+    } else {
+      token_results_text <- NULL
+    }
+    
     pages <- findInterval(keyword_line, c(1, line_nums))
     
     text_out <- tibble::tibble(keyword = rep(keyword, 
-                        sapply(keyword_line_loc, length)), 
+                                             sapply(keyword_line_loc, length)), 
                                page_num = pages,
                                line_num = keyword_line,
-                               line_text = lines_sel)
+                               line_text = lines_sel,
+                               token_text = token_results_text
+    )
     
     if(heading_search) {
       head_res <- do.call('heading_search', heading_args)
