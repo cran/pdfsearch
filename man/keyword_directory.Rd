@@ -6,8 +6,9 @@
 \usage{
 keyword_directory(directory, keyword, split_pdf = FALSE,
   surround_lines = FALSE, ignore_case = FALSE, remove_hyphen = TRUE,
-  token_results = TRUE, full_names = TRUE, recursive = FALSE,
-  max_search = NULL, ...)
+  token_results = TRUE, convert_sentence = TRUE,
+  split_pattern = "\\\\p{WHITE_SPACE}{3,}", full_names = TRUE,
+  file_pattern = ".pdf", recursive = FALSE, max_search = NULL, ...)
 }
 \arguments{
 \item{directory}{The directory to perform the search for pdf files to search.}
@@ -38,8 +39,22 @@ be adjusted to combine onto a single line. Default is TRUE.}
 should be split into tokens. See the tokenizers package and 
 \code{\link{convert_tokens}} for more details. Defaults to TRUE.}
 
+\item{convert_sentence}{TRUE/FALSE indicating if individual lines of PDF file
+should be collapsed into a single large paragraph to perform keyword 
+searching. Default is TRUE}
+
+\item{split_pattern}{Regular expression pattern used to split multicolumn 
+PDF files using \code{stringi::stri_split_regex}. 
+Default pattern is "\\p{WHITE_SPACE}{3,}" which can be interpreted as: 
+split based on three or more consecutive white space characters.}
+
 \item{full_names}{TRUE/FALSE indicating if the full file path should be used.
 Default is TRUE, see \code{\link{list.files}} for more details.}
+
+\item{file_pattern}{An optional regular expression to select specific file
+names. Only files that match the regular expression will be searched. 
+Defaults to all pdfs, i.e. \code{".pdf"}. See \code{\link{list.files}} 
+for more details.}
 
 \item{recursive}{TRUE/FALSE indicating if subdirectories should be searched 
 as well.

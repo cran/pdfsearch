@@ -33,6 +33,13 @@
 #' @param heading_args A list of arguments to pass on to the 
 #'    \code{\link{heading_search}} function. See \code{\link{heading_search}} 
 #'     for more details on arguments needed.
+#' @param convert_sentence TRUE/FALSE indicating if individual lines of PDF file
+#'     should be collapsed into a single large paragraph to perform keyword 
+#'     searching. Default is TRUE
+#' @param split_pattern Regular expression pattern used to split multicolumn 
+#'     PDF files using \code{stringi::stri_split_regex}. 
+#'     Default pattern is "\\p{WHITE_SPACE}{3,}" which can be interpreted as: 
+#'     split based on three or more consecutive white space characters. 
 #' @param ... token_function to pass to \code{\link{convert_tokens}} 
 #'   function. 
 #'   
@@ -42,7 +49,7 @@
 #'   
 #' @importFrom pdftools pdf_text
 #' @importFrom tibble tibble
-#' @importFrom tokenizers tokenize_lines
+#' @importFrom stringi stri_split_boundaries stri_split_lines
 #' @examples 
 #' file <- system.file('pdf', '1501.00450.pdf', package = 'pdfsearch')
 #' 
@@ -62,7 +69,8 @@ keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
                            surround_lines = FALSE, ignore_case = FALSE,
                            remove_hyphen = TRUE, token_results = TRUE,
                            heading_search = FALSE, heading_args = NULL,
-                           ...) {
+                           convert_sentence = TRUE, 
+                           split_pattern = "\\p{WHITE_SPACE}{3,}", ...) {
   if(path) {
     x <- pdftools::pdf_text(x)
   }
@@ -76,11 +84,13 @@ keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
   } else {
     
     if(split_pdf) {
-      x_list <- split_pdf(x)
-      line_nums <- cumsum(x_list[[2]])
-      x_lines <- x_list[[1]]
+      x_list <- split_pdf(x, pattern = split_pattern)
+      x_lines <- unlist(x_list)
+      x_lines <- gsub("^\\s+|\\s+$", '', x_lines)
+      # line_nums <- cumsum(x_list[[2]])
+      # x_lines <- x_list[[1]]
     } else {
-      x_lines <- unlist(tokenizers::tokenize_lines(x))
+      x_lines <- unlist(stringi::stri_split_lines(x))
       x_lines <- gsub("^\\s+|\\s+$", '', x_lines)
     }
     
@@ -88,16 +98,22 @@ keyword_search <- function(x, keyword, path = FALSE, split_pdf = FALSE,
       x_lines <- remove_hyphen(x_lines)
     }
     
+    # collapse into a single paragraph
+    if(convert_sentence) {
+      x_lines <- paste(x_lines, collapse = ' ')
+      x_lines <- unlist(stringi::stri_split_boundaries(x_lines, 
+                                                       type = "sentence"))
+    }
     
     if(length(ignore_case) > 1) {
       if(length(keyword) != length(ignore_case)) {
           stop('keyword and ignore.case must be same length')
       }
       keyword_line_loc <- lapply(seq_along(keyword), function(xx) 
-        grep(keyword[xx], x_lines, ignore_case[xx]))
+        grep(keyword[xx], x_lines, ignore_case[xx], perl = TRUE))
     } else {
       keyword_line_loc <- lapply(seq_along(keyword), function(xx) 
-        grep(keyword[xx], x_lines, ignore_case))
+        grep(keyword[xx], x_lines, ignore_case, perl = TRUE))
     }
     keyword_line <- unlist(keyword_line_loc)
     
